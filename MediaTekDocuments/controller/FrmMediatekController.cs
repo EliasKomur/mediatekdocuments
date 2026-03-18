@@ -205,5 +205,76 @@ namespace MediaTekDocuments.controller
         {
             return access.SupprimerCommandeDocument(commande);
         }
+
+        /// <summary>
+        /// Retourne les commandes (abonnements) d'une revue
+        /// </summary>
+        public List<CommandeAbonnement> GetCommandesRevue(string idRevue)
+        {
+            return access.GetCommandesRevue(idRevue);
+        }
+
+        /// <summary>
+        /// Crée un abonnement dans la BDD
+        /// </summary>
+        public bool CreerAbonnement(CommandeAbonnement commande)
+        {
+            return access.CreerAbonnement(commande);
+        }
+
+        /// <summary>
+        /// Supprime un abonnement
+        /// </summary>
+        public bool SupprimerAbonnement(CommandeAbonnement commande)
+        {
+            return access.SupprimerAbonnement(commande);
+        }
+
+        /// <summary>
+        /// Retourne les revues dont l'abonnement se termine dans moins de 30 jours
+        /// </summary>
+        public List<CommandeAbonnement> GetAbonnementsExpires()
+        {
+            return access.GetAbonnementsExpires();
+        }
+        /// <summary>
+        /// Récupère les exemplaires d'un livre ou DVD
+        /// </summary>
+        public List<Exemplaire> GetExemplairesLivreDvd(string idDocument)
+        {
+            return access.GetExemplairesLivreDvd(idDocument);
+        }
+
+        /// <summary>
+        /// Modifie l'état d'un exemplaire
+        /// </summary>
+        public bool ModifierEtatExemplaire(Exemplaire exemplaire)
+        {
+            return access.ModifierEtatExemplaire(exemplaire);
+        }
+
+        /// <summary>
+        /// Supprime un exemplaire
+        /// </summary>
+        public bool SupprimerExemplaire(Exemplaire exemplaire)
+        {
+            return access.SupprimerExemplaire(exemplaire);
+        }
+
+        /// <summary>
+        /// Récupère les états disponibles
+        /// </summary>
+        public List<Categorie> GetAllEtats()
+        {
+            return access.GetAllEtats();
+        }
+
+        /// <summary>
+        /// Retourne l'utilisateur correspondant au login/pwd
+        /// </summary>
+        public Utilisateur GetUtilisateur(string login, string pwd)
+        {
+            return access.GetUtilisateur(login, pwd);
+        }
     }
 }

@@ -86,6 +86,8 @@
     <Compile Include="manager\ApiRest.cs" />
     <Compile Include="controller\FrmMediatekController.cs" />
     <Compile Include="dal\Access.cs" />
+    <Compile Include="model\UtilitaireDates.cs" />
+    <Compile Include="model\CommandeAbonnement.cs" />
     <Compile Include="model\Suivi.cs" />
     <Compile Include="model\CommandeDocument.cs" />
     <Compile Include="model\Commande.cs" />

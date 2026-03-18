@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using MediaTekDocuments.model;
+using System.Linq;
 using MediaTekDocuments.manager;
+using MediaTekDocuments.model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -407,7 +408,19 @@ namespace MediaTekDocuments.dal
         }
 
         /// <summary>
-        /// Retourne les commandes d'un livre ou DVD
+        /// Retourne l'utilisateur correspondant au login/pwd, ou null si non trouvé
+        /// </summary>
+        public Utilisateur GetUtilisateur(string login, string pwd)
+        {
+            String jsonCredentials = "{\"login\":\"" + login + "\",\"pwd\":\"" + pwd + "\"}";
+            List<Utilisateur> liste = TraitementRecup<Utilisateur>(GET, "utilisateur/" + jsonCredentials, null);
+            if (liste != null && liste.Count > 0)
+                return liste[0];
+            return null;
+        }
+
+        /// <summary>
+        /// Retourne les commandes d'un livre
         /// </summary>
         public List<CommandeDocument> GetCommandesLivreDvd(string idLivreDvd)
         {
@@ -437,14 +450,11 @@ namespace MediaTekDocuments.dal
 
         /// <summary>
         /// Crée une commande dans la BDD
-        /// insert dans commande puis commandedocument
-        /// si l'insert dans commandedocument échoue, suppression dans commande
         /// </summary>
         public bool CreerCommandeDocument(CommandeDocument commande)
         {
             try
             {
-                // 1. Insert dans commande
                 Dictionary<string, object> champCommande = new Dictionary<string, object>
                 {
                     { "id", commande.Id },
@@ -455,7 +465,6 @@ namespace MediaTekDocuments.dal
                 List<Object> listeCommande = TraitementRecup<Object>(POST, "commande", "champs=" + jsonCommande);
                 if (listeCommande == null) return false;
 
-                // 2. Insert dans commandedocument avec idSuivi = "00001" (En cours)
                 Dictionary<string, object> champCommandeDoc = new Dictionary<string, object>
                 {
                     { "id", commande.Id },
@@ -467,7 +476,6 @@ namespace MediaTekDocuments.dal
                 List<Object> listeCommandeDoc = TraitementRecup<Object>(POST, "commandedocument", "champs=" + jsonCommandeDoc);
                 if (listeCommandeDoc == null)
                 {
-                    // Annulation : suppression dans commande
                     String jsonId = convertToJson("id", commande.Id);
                     TraitementRecup<Object>(DELETE, "commande/" + jsonId, null);
                     return false;
@@ -521,6 +529,100 @@ namespace MediaTekDocuments.dal
             return false;
         }
 
+        /// <summary>
+        /// Retourne les commandes (abonnements) d'une revue
+        /// </summary>
+        public List<CommandeAbonnement> GetCommandesRevue(string idRevue)
+        {
+            String jsonIdRevue = convertToJson("idRevue", idRevue);
+            List<CommandeAbonnement> lesCommandes = TraitementRecup<CommandeAbonnement>(GET, "commandesrevue/" + jsonIdRevue, null);
+            return lesCommandes;
+        }
+
+        /// <summary>
+        /// Crée un abonnement dans la BDD
+        /// </summary>
+        public bool CreerAbonnement(CommandeAbonnement commande)
+        {
+            try
+            {
+                Dictionary<string, object> champCommande = new Dictionary<string, object>
+                {
+                    { "id", commande.Id },
+                    { "dateCommande", commande.DateCommande.ToString("yyyy-MM-dd") },
+                    { "montant", commande.Montant }
+                };
+                String jsonCommande = JsonConvert.SerializeObject(champCommande);
+                List<Object> listeCommande = TraitementRecup<Object>(POST, "commande", "champs=" + jsonCommande);
+                if (listeCommande == null) return false;
+
+                Dictionary<string, object> champAbonnement = new Dictionary<string, object>
+                {
+                    { "id", commande.Id },
+                    { "dateFinAbonnement", commande.DateFinAbonnement.ToString("yyyy-MM-dd") },
+                    { "idRevue", commande.IdRevue }
+                };
+                String jsonAbonnement = JsonConvert.SerializeObject(champAbonnement);
+                List<Object> listeAbonnement = TraitementRecup<Object>(POST, "abonnement", "champs=" + jsonAbonnement);
+                if (listeAbonnement == null)
+                {
+                    String jsonId = convertToJson("id", commande.Id);
+                    TraitementRecup<Object>(DELETE, "commande/" + jsonId, null);
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Supprime un abonnement (le trigger supprime aussi dans abonnement)
+        /// </summary>
+        public bool SupprimerAbonnement(CommandeAbonnement commande)
+        {
+            try
+            {
+                String jsonId = convertToJson("id", commande.Id);
+                List<Object> liste = TraitementRecup<Object>(DELETE, "commande/" + jsonId, null);
+                return (liste != null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Retourne les revues dont l'abonnement se termine dans moins de 30 jours
+        /// </summary>
+        public List<CommandeAbonnement> GetAbonnementsExpires()
+        {
+            // On récupère toutes les revues
+            List<Revue> toutesRevues = GetAllRevues();
+            List<CommandeAbonnement> tousAbonnements = new List<CommandeAbonnement>();
+
+            // Pour chaque revue, on récupère ses abonnements
+            foreach (Revue revue in toutesRevues)
+            {
+                List<CommandeAbonnement> abonnementsRevue = GetCommandesRevue(revue.Id);
+                if (abonnementsRevue != null)
+                    tousAbonnements.AddRange(abonnementsRevue);
+            }
+
+            if (tousAbonnements.Count == 0) return new List<CommandeAbonnement>();
+
+            DateTime dans30Jours = DateTime.Now.AddDays(30);
+            return tousAbonnements
+                .FindAll(x => x.DateFinAbonnement <= dans30Jours && x.DateFinAbonnement >= DateTime.Now)
+                .OrderBy(x => x.DateFinAbonnement)
+                .ToList();
+        }
+
         private List<T> TraitementRecup<T>(String methode, String message, String parametres)
         {
             List<T> liste = new List<T>();
@@ -547,6 +649,65 @@ namespace MediaTekDocuments.dal
                 Environment.Exit(0);
             }
             return liste;
+        }
+        /// <summary>
+        /// Modifie l'état d'un exemplaire
+        /// </summary>
+        public bool ModifierEtatExemplaire(Exemplaire exemplaire)
+        {
+            try
+            {
+                Dictionary<string, object> champ = new Dictionary<string, object>
+        {
+            { "idEtat", exemplaire.IdEtat }
+        };
+                String json = JsonConvert.SerializeObject(champ);
+                // L'exemplaire a une clé composite (id + numero)
+                String jsonId = convertToJson("id", exemplaire.Id);
+                List<Object> liste = TraitementRecup<Object>(PUT, "exemplaire/" + exemplaire.Id + "/" + exemplaire.Numero, "champs=" + json);
+                return (liste != null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Supprime un exemplaire
+        /// </summary>
+        public bool SupprimerExemplaire(Exemplaire exemplaire)
+        {
+            try
+            {
+                List<Object> liste = TraitementRecup<Object>(DELETE, "exemplaire/" + exemplaire.Id + "/" + exemplaire.Numero, null);
+                return (liste != null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Récupère les exemplaires d'un livre ou DVD
+        /// </summary>
+        public List<Exemplaire> GetExemplairesLivreDvd(string idDocument)
+        {
+            String jsonIdDocument = convertToJson("id", idDocument);
+            List<Exemplaire> lesExemplaires = TraitementRecup<Exemplaire>(GET, "exemplaire/" + jsonIdDocument, null);
+            return lesExemplaires;
+        }
+
+        /// <summary>
+        /// Retourne les états des exemplaires
+        /// </summary>
+        public List<Categorie> GetAllEtats()
+        {
+            List<Categorie> lesEtats = TraitementRecup<Categorie>(GET, "etat", null);
+            return lesEtats;
         }
 
         private String convertToJson(Object nom, Object valeur)
