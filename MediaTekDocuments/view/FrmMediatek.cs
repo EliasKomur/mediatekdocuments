@@ -16,11 +16,14 @@ namespace MediaTekDocuments.view
         private readonly BindingSource bdgGenres = new BindingSource();
         private readonly BindingSource bdgPublics = new BindingSource();
         private readonly BindingSource bdgRayons = new BindingSource();
+        private readonly Utilisateur utilisateurConnecte;
 
-        internal FrmMediatek()
+        internal FrmMediatek(Utilisateur utilisateur)
         {
             InitializeComponent();
             this.controller = new FrmMediatekController();
+            this.utilisateurConnecte = utilisateur;
+            AppliquerDroitsAcces();
             AfficheAlerteAbonnements();
         }
 
@@ -32,8 +35,30 @@ namespace MediaTekDocuments.view
                 cbx.SelectedIndex = -1;
         }
 
+        private void AppliquerDroitsAcces()
+        {
+            if (utilisateurConnecte.IdService.Equals("prets"))
+            {
+                tabCommandesLivres.Enabled = false;
+                tabCommandesDvd.Enabled = false;
+                tabCommandesRevues.Enabled = false;
+                tabReceptionRevue.Enabled = false;
+                btnLivresAjouter.Visible = false;
+                btnLivresModifier.Visible = false;
+                btnLivresSupprimerDoc.Visible = false;
+                btnDvdAjouter.Visible = false;
+                btnDvdModifier.Visible = false;
+                btnDvdSupprimerDoc.Visible = false;
+                btnRevuesAjouter.Visible = false;
+                btnRevuesModifier.Visible = false;
+                btnRevuesSupprimerDoc.Visible = false;
+            }
+        }
+
         private void AfficheAlerteAbonnements()
         {
+            if (!utilisateurConnecte.IdService.Equals("admin"))
+                return;
             List<CommandeAbonnement> abonnements = controller.GetAbonnementsExpires();
             if (abonnements != null && abonnements.Count > 0)
             {
@@ -1085,7 +1110,6 @@ namespace MediaTekDocuments.view
                 Exemplaire exemplaire = (Exemplaire)bdgExemplairesListe.List[bdgExemplairesListe.Position];
                 try { pcbReceptionExemplaireRevueImage.Image = Image.FromFile(exemplaire.Photo); }
                 catch { pcbReceptionExemplaireRevueImage.Image = null; }
-                // Mission 3 : mise à jour du combo état
                 for (int i = 0; i < cbxReceptionEtat.Items.Count; i++)
                     if (((Categorie)cbxReceptionEtat.Items[i]).Id.Equals(exemplaire.IdEtat))
                     { cbxReceptionEtat.SelectedIndex = i; break; }
@@ -1093,9 +1117,6 @@ namespace MediaTekDocuments.view
             else pcbReceptionExemplaireRevueImage.Image = null;
         }
 
-        /// <summary>
-        /// Modifier l'état d'une parution de revue
-        /// </summary>
         private void btnReceptionModifierEtat_Click(object sender, EventArgs e)
         {
             if (dgvReceptionExemplairesListe.CurrentCell == null || bdgExemplairesListe.Count == 0)
@@ -1112,9 +1133,6 @@ namespace MediaTekDocuments.view
             else MessageBox.Show("Erreur lors de la modification.", "Erreur");
         }
 
-        /// <summary>
-        /// Supprimer une parution de revue
-        /// </summary>
         private void btnReceptionSupprimerExemplaire_Click(object sender, EventArgs e)
         {
             if (dgvReceptionExemplairesListe.CurrentCell == null || bdgExemplairesListe.Count == 0)

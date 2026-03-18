@@ -14,25 +14,37 @@ namespace MediaTekDocuments.dal
     /// </summary>
     public class Access
     {
-        private static readonly string uriApi = "http://localhost/rest_mediatekdocuments/";
         private static Access instance = null;
         private readonly ApiRest api = null;
         private const string GET = "GET";
         private const string POST = "POST";
         private const string PUT = "PUT";
         private const string DELETE = "DELETE";
+        private static readonly string cheminLog = AppDomain.CurrentDomain.BaseDirectory + "logs\\mediatekdocuments.log";
+
+        private static void EcrireLog(string message)
+        {
+            try
+            {
+                string ligne = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " - " + message;
+                Console.WriteLine(ligne);
+                System.IO.Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "logs");
+                System.IO.File.AppendAllText(cheminLog, ligne + Environment.NewLine);
+            }
+            catch { }
+        }
 
         private Access()
         {
-            String authenticationString;
             try
             {
-                authenticationString = "admin:adminpwd";
-                api = ApiRest.GetInstance(uriApi, authenticationString);
+                string authenticationString = System.Configuration.ConfigurationManager.AppSettings["ApiAuthentification"];
+                string uriApiLocal = System.Configuration.ConfigurationManager.AppSettings["ApiUrl"];
+                api = ApiRest.GetInstance(uriApiLocal, authenticationString);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                EcrireLog("Erreur de connexion à l'API : " + e.Message);
                 Environment.Exit(0);
             }
         }
@@ -99,7 +111,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur CreerExemplaire : " + ex.Message);
             }
             return false;
         }
@@ -154,7 +166,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur CreerLivre : " + ex.Message);
             }
             return false;
         }
@@ -187,7 +199,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur ModifierLivre : " + ex.Message);
             }
             return false;
         }
@@ -206,7 +218,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur SupprimerLivre : " + ex.Message);
             }
             return false;
         }
@@ -261,7 +273,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur CreerDvd : " + ex.Message);
             }
             return false;
         }
@@ -294,7 +306,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur ModifierDvd : " + ex.Message);
             }
             return false;
         }
@@ -313,7 +325,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur SupprimerDvd : " + ex.Message);
             }
             return false;
         }
@@ -353,7 +365,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur CreerRevue : " + ex.Message);
             }
             return false;
         }
@@ -385,7 +397,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur ModifierRevue : " + ex.Message);
             }
             return false;
         }
@@ -402,7 +414,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur SupprimerRevue : " + ex.Message);
             }
             return false;
         }
@@ -412,8 +424,13 @@ namespace MediaTekDocuments.dal
         /// </summary>
         public Utilisateur GetUtilisateur(string login, string pwd)
         {
-            String jsonCredentials = "{\"login\":\"" + login + "\",\"pwd\":\"" + pwd + "\"}";
-            List<Utilisateur> liste = TraitementRecup<Utilisateur>(GET, "utilisateur/" + jsonCredentials, null);
+            Dictionary<string, object> champs = new Dictionary<string, object>
+            {
+                { "login", login },
+                { "pwd", pwd }
+            };
+            String json = JsonConvert.SerializeObject(champs);
+            List<Utilisateur> liste = TraitementRecup<Utilisateur>(GET, "utilisateur/" + json, null);
             if (liste != null && liste.Count > 0)
                 return liste[0];
             return null;
@@ -484,7 +501,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur CreerCommandeDocument : " + ex.Message);
             }
             return false;
         }
@@ -506,13 +523,13 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur ModifierSuiviCommande : " + ex.Message);
             }
             return false;
         }
 
         /// <summary>
-        /// Supprime une commande (le trigger supprime aussi dans commandedocument)
+        /// Supprime une commande
         /// </summary>
         public bool SupprimerCommandeDocument(CommandeDocument commande)
         {
@@ -524,7 +541,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur SupprimerCommandeDocument : " + ex.Message);
             }
             return false;
         }
@@ -574,13 +591,13 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur CreerAbonnement : " + ex.Message);
             }
             return false;
         }
 
         /// <summary>
-        /// Supprime un abonnement (le trigger supprime aussi dans abonnement)
+        /// Supprime un abonnement
         /// </summary>
         public bool SupprimerAbonnement(CommandeAbonnement commande)
         {
@@ -592,7 +609,7 @@ namespace MediaTekDocuments.dal
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur SupprimerAbonnement : " + ex.Message);
             }
             return false;
         }
@@ -602,20 +619,15 @@ namespace MediaTekDocuments.dal
         /// </summary>
         public List<CommandeAbonnement> GetAbonnementsExpires()
         {
-            // On récupère toutes les revues
             List<Revue> toutesRevues = GetAllRevues();
             List<CommandeAbonnement> tousAbonnements = new List<CommandeAbonnement>();
-
-            // Pour chaque revue, on récupère ses abonnements
             foreach (Revue revue in toutesRevues)
             {
                 List<CommandeAbonnement> abonnementsRevue = GetCommandesRevue(revue.Id);
                 if (abonnementsRevue != null)
                     tousAbonnements.AddRange(abonnementsRevue);
             }
-
             if (tousAbonnements.Count == 0) return new List<CommandeAbonnement>();
-
             DateTime dans30Jours = DateTime.Now.AddDays(30);
             return tousAbonnements
                 .FindAll(x => x.DateFinAbonnement <= dans30Jours && x.DateFinAbonnement >= DateTime.Now)
@@ -640,16 +652,17 @@ namespace MediaTekDocuments.dal
                 }
                 else
                 {
-                    Console.WriteLine("code erreur = " + code + " message = " + (String)retour["message"]);
+                    EcrireLog("code erreur = " + code + " message = " + (String)retour["message"]);
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine("Erreur lors de l'accès à l'API : " + e.Message);
+                EcrireLog("Erreur lors de l'accès à l'API : " + e.Message);
                 Environment.Exit(0);
             }
             return liste;
         }
+
         /// <summary>
         /// Modifie l'état d'un exemplaire
         /// </summary>
@@ -658,18 +671,16 @@ namespace MediaTekDocuments.dal
             try
             {
                 Dictionary<string, object> champ = new Dictionary<string, object>
-        {
-            { "idEtat", exemplaire.IdEtat }
-        };
+                {
+                    { "idEtat", exemplaire.IdEtat }
+                };
                 String json = JsonConvert.SerializeObject(champ);
-                // L'exemplaire a une clé composite (id + numero)
-                String jsonId = convertToJson("id", exemplaire.Id);
-                List<Object> liste = TraitementRecup<Object>(PUT, "exemplaire/" + exemplaire.Id + "/" + exemplaire.Numero, "champs=" + json);
+                List<Object> liste = TraitementRecup<Object>(PUT, "exemplaire/" + exemplaire.Id + "_" + exemplaire.Numero, "champs=" + json);
                 return (liste != null);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur ModifierEtatExemplaire : " + ex.Message);
             }
             return false;
         }
@@ -681,12 +692,18 @@ namespace MediaTekDocuments.dal
         {
             try
             {
-                List<Object> liste = TraitementRecup<Object>(DELETE, "exemplaire/" + exemplaire.Id + "/" + exemplaire.Numero, null);
+                Dictionary<string, object> champs = new Dictionary<string, object>
+                {
+                    { "id", exemplaire.Id },
+                    { "numero", exemplaire.Numero }
+                };
+                String json = JsonConvert.SerializeObject(champs);
+                List<Object> liste = TraitementRecup<Object>(DELETE, "exemplaire/" + json, null);
                 return (liste != null);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                EcrireLog("Erreur SupprimerExemplaire : " + ex.Message);
             }
             return false;
         }
